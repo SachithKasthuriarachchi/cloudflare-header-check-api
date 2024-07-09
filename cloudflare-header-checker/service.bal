@@ -25,14 +25,21 @@ service / on new http:Listener(9090) {
         foreach string headerName in headerNames {
             log:printInfo("Header name:" + headerName);
             string[] headerValues = check req.getHeaders(headerName);
-               foreach string headerValue in headerValues {
+            foreach string headerValue in headerValues {
                 log:printInfo("Header value:" + headerValue);
             }
         }
 
+        // Build response payload with headers
+        map<json> headersJson = {};
+        foreach string headerName in headerNames {
+            string[] headerValues = check req.getHeaders(headerName);
+            headersJson[headerName] = headerValues;
+        }
+
         // Send a response
         http:Response res = new;
-        res.setPayload("Headers logged in the console.");
+        res.setPayload(headersJson);
         check caller->respond(res);
     }
 }
