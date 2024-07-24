@@ -1,13 +1,18 @@
 import ballerina/http;
 import ballerina/log;
 
-# A service representing a network-accessible API
-# bound to port `9090`.
+// Configurable URL for the internal service
+configurable string internalServiceUrl = ?;
+
+// HTTP client to call the internal service
+http:Client internalClient = check new (internalServiceUrl);
+
+// A service representing a network-accessible API bound to port `9090`.
 service / on new http:Listener(9090) {
 
-    # A resource for generating greetings
-    # + name - the input string name
-    # + return - string name with hello message or error
+    // A resource for generating greetings
+    // + name - the input string name
+    // + return - string name with hello message or error
     resource function get greeting(string name) returns string|error {
         // Send a response back to the caller.
         if name is "" {
@@ -16,30 +21,20 @@ service / on new http:Listener(9090) {
         return "Hello, " + name;
     }
 
-    resource function get headers(http:Caller caller, http:Request req) returns error? {
-        // Get all headers
-        string[] headerNames = req.getHeaderNames();
-
-        // Print headers
-        log:printInfo("Header Names:");
-        foreach string headerName in headerNames {
-            log:printInfo("Header name:" + headerName);
-            string[] headerValues = check req.getHeaders(headerName);
-            foreach string headerValue in headerValues {
-                log:printInfo("Header value:" + headerValue);
-            }
+    // A resource for getting internal greetings from another service
+    // + name - the input string name
+    // + return - the response from the internal service or error
+    resource function get internalgreeting(string name) returns string|error {
+        // Log the request
+        log:printInfo("Request received for internalgreeting with name: " + name);
+        
+        // Call the internal service and return the response
+        http:Response|error response = internalClient->get("/greeting?name=" + name);
+        if response is http:Response {
+            return check response.getTextPayload();
+        } else {
+            log:printError("Failed to call internal service", response);
+            return error("Failed to call internal service");
         }
-
-        // Build response payload with headers
-        map<json> headersJson = {};
-        foreach string headerName in headerNames {
-            string[] headerValues = check req.getHeaders(headerName);
-            headersJson[headerName] = headerValues;
-        }
-
-        // Send a response
-        http:Response res = new;
-        res.setPayload(headersJson);
-        check caller->respond(res);
     }
 }
