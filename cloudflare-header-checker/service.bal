@@ -29,7 +29,7 @@ service / on new http:Listener(9090) {
         log:printInfo("Request received for internalgreeting with name: " + name);
         
         // Call the internal service and return the response
-        http:Response|error response = internalClient->get("/hello/greeting");
+        http:Response|error response = internalClient->get("/greeting");
         if response is http:Response {
             return check response.getTextPayload();
         } else {
